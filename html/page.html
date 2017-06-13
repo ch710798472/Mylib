@@ -1,0 +1,170 @@
+<script src="jquery.min.js"></script>
+<style type="text/css">
+    #userlist table {
+        border-collapse: collapse;
+        width: 100%;
+        height: auto;
+        background: CFCFCF;
+    }
+
+    #userlist table thead {
+        margin: 0;
+        padding: 0;
+        background-color: #CCCCCC;
+        text-align: center;
+        height: 30px;
+        line-height: 30px;
+    }
+
+    #userlist tbody tr {
+        height: 28px;
+        line-height: 28px;
+        text-align: center;
+    }
+
+    #userlist tfoot tr {
+        height: 30px;
+        background: #CCCCCC;
+        line-height: 30px;
+        text-align: center;
+    }
+
+    #userlist tfoot tr td a {
+        text-decoration: none;
+        margin: 4px;
+    }
+
+    #userlist tfoot tr td a:hover {
+        text-decoration: underline;
+        color: Red;
+    }
+
+    #userlist tfoot tr td input {
+        height: 20px;
+        width: 40px;
+        margin: 4px;
+    }
+
+    #userlist tfoot tr td input[type=text] {
+        background: white;
+        border: 0;
+    }
+
+    #userlist tfoot tr td input[type=button] {
+        font: 14px/21px Arial;
+        border: 1px dashed;
+        padding: 1px 1px;
+        cursor: pointer;
+    }
+</style>
+<script type="text/javascript">
+    var page = 1;
+    var pagesize = 20;
+    $(function () {
+        //------查询
+        $("#search").click(function () {
+            page = 1;
+            getAjaxData(page, pagesize);
+        });
+    });
+    //------封装分页方法开始
+    function getAjaxData(page, pagesize) {
+        $.ajax({
+            type: "get",
+            url: "queryBlackList.do",
+            datatype: "json",
+            contentType: "application/json;charset=utf-8",
+            data: "action=/query_action" + "&event_submit_do_query=anything" + "&page=" + page + "&pagesize=" + pagesize,
+            success: function (data) {
+                var json = eval("("+data+")");
+                if (json.status == 302) {
+                    location.href = json.location;
+                }
+                var htmlStr = "";
+                htmlStr += "<table>"
+                htmlStr += "<thead>"
+                htmlStr += "<tr><td>userId</td></tr>"
+                htmlStr += "</thead>";
+                htmlStr += "<tbody>"
+                for (var i = 0; i < json.userlist.length; i++) {
+                    htmlStr += "<tr>";
+                    htmlStr += "<td>" + json.userlist[i].userId + "</td>"
+
+                    htmlStr += "</tr>";
+                }
+                //如果查询出得结果总数小于pagesize则用空行填充
+                if (json.userlist.length < pagesize) {
+                    for (var i = 0; i < pagesize - json.userlist.length; i++) {
+                        htmlStr += "<tr><td style='height:28px;'></td></tr>";
+                    }
+                }
+                htmlStr += "</tbody>";
+                htmlStr += "<tfoot>";
+                htmlStr += "<tr>";
+                htmlStr += "<td colspan='4'>";
+                htmlStr += "<span>总:" + json.totalcount + "条 当前:" + page + "/<span id='count'>" + (json.totalcount % pagesize == 0 ? parseInt(json.totalcount / pagesize) : parseInt(json.totalcount / pagesize + 1)) + "</span>页" + "</span>";
+                htmlStr += "<a href='javascript:GoToFirstPage()'id='aFirstPage' >首    页</a>";
+                htmlStr += "<a href='javascript:GoToPrePage()'  id='aPrePage' >上一页</a>";
+                htmlStr += "<a href='javascript:GoToNextPage()' id='aNextPage'>下一页</a>";
+                htmlStr += "<a href='javascript:GoToEndPage()'  id='aEndPage' >尾    页</a>";
+                htmlStr += "<input type='text' /><input type='button'  value='跳转' onclick='GoToAppointPage(this)' /> ";
+                htmlStr += "</td>";
+                htmlStr += "</tr>";
+                htmlStr += "</tfoot>";
+                htmlStr += "</table>";
+                $("#userlist").html(htmlStr);
+
+            },
+            error: function (error) {
+                alert("出错啦！请找开发人员解决！");
+            }
+        });
+    }
+    //--------封装分页方法结束
+    //首页
+    function GoToFirstPage() {
+        page = 1;
+        getAjaxData(page, pagesize);
+    }
+    //前一页
+    function GoToPrePage() {
+
+        page = page - 1 <= 0 ? 1 : page - 1;
+        getAjaxData(page, pagesize);
+
+    }
+    //后一页
+    function GoToNextPage() {
+        if (page + 1 <= parseInt($("#count").text())) {
+            page = page + 1;
+        }
+        getAjaxData(page, pagesize);
+    }
+    //尾页
+    function GoToEndPage() {
+        page = parseInt($("#count").text());
+        getAjaxData(page, pagesize);
+    }
+    //跳转
+    function GoToAppointPage(e) {
+        var page_goto = $(e).prev().val();
+        if (isNaN(page_goto)) {
+            alert("请输入数字!");
+        }
+        else {
+            var tempPageIndex = page;
+            page = parseInt($(e).prev().val());
+            if (page <= 0 || page > parseInt($("#count").text())) {
+                page = tempPageIndex;
+                alert("请输入有效的页面范围!");
+            }
+            else {
+                getAjaxData(page_goto, pagesize);
+            }
+        }
+    }
+
+</script>
+<input type="button" class="btn btn-primary" id="search" value="查询用户" />
+<div id="userlist">
+</div>
